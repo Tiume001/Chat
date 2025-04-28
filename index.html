@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Libera (HTML+CSS+JS)</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+    #login, #chat { margin: auto; width: 90%; max-width: 500px; }
+    #login { text-align: center; }
+    #roomInput { width: 70%; padding: 8px; }
+    #enterRoom { padding: 8px 12px; }
+    #messages { list-style: none; padding: 0; height: calc(100vh - 200px); overflow-y: auto; background: #fff; border: 1px solid #ccc; margin-bottom: 10px; }
+    #messages li { padding: 6px 10px; border-bottom: 1px solid #eee; }
+    #messageForm { display: flex; }
+    #messageInput { flex: 1; padding: 8px; }
+    #sendBtn { padding: 8px 12px; }
+  </style>
+</head>
+<body>
+
+  <div id="login">
+    <h2>Entra in una stanza di chat</h2>
+    <input type="text" id="roomInput" placeholder="Inserisci ID stanza">
+    <button id="enterRoom">Entra</button>
+  </div>
+
+  <div id="chat" style="display:none;">
+    <h3>Stanza: <span id="roomName"></span></h3>
+    <ul id="messages"></ul>
+    <form id="messageForm">
+      <input type="text" id="messageInput" placeholder="Scrivi un messaggio..." autocomplete="off" />
+      <button id="sendBtn">Invia</button>
+    </form>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <script>
+    // TODO: sostituisci con le tue credenziali dal progetto Firebase
+    const firebaseConfig = {
+      apiKey: "TUO_API_KEY",
+      authDomain: "TUO_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://TUO_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "TUO_PROJECT_ID",
+      storageBucket: "TUO_PROJECT_ID.appspot.com",
+      messagingSenderId: "TUO_SENDER_ID",
+      appId: "TUO_APP_ID"
+    };
+    // Inizializza Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Elementi DOM
+    const loginDiv    = document.getElementById('login');
+    const chatDiv     = document.getElementById('chat');
+    const roomInput   = document.getElementById('roomInput');
+    const enterRoom   = document.getElementById('enterRoom');
+    const roomNameEl  = document.getElementById('roomName');
+    const messagesUl  = document.getElementById('messages');
+    const messageForm = document.getElementById('messageForm');
+    const messageInput= document.getElementById('messageInput');
+
+    let roomId = null;
+
+    // Entra in una stanza
+    enterRoom.addEventListener('click', () => {
+      const val = roomInput.value.trim();
+      if (!val) return alert('Inserisci un ID stanza valido.');
+      roomId = val;
+      roomNameEl.textContent = roomId;
+      loginDiv.style.display = 'none';
+      chatDiv.style.display = 'block';
+      startListening();
+    });
+
+    // Ascolta i nuovi messaggi
+    function startListening() {
+      const roomRef = db.ref('rooms/' + roomId);
+      roomRef.on('child_added', snapshot => {
+        const msg = snapshot.val();
+        const li = document.createElement('li');
+        li.textContent = msg;
+        messagesUl.appendChild(li);
+        messagesUl.scrollTop = messagesUl.scrollHeight;
+      });
+    }
+
+    // Invia un messaggio
+    messageForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const text = messageInput.value.trim();
+      if (!text) return;
+      db.ref('rooms/' + roomId).push(text);
+      messageInput.value = '';
+    });
+  </script>
+
+</body>
+</html>
